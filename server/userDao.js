@@ -6,7 +6,7 @@ class UserDao {
   constructor() {}
 
   /**
-   * @param {{email: string; password: string;}} user
+   * @param {{email: string; password: string; accountType: string;}} user
    */
   async createUser(user) {
     let newUser = await db().collection(dbCol).insertOne(user);
