@@ -2,6 +2,11 @@ const express = require("express");
 const routes = require("./routes/route");
 const cors = require("cors");
 
+/**
+ * @description Creates Express Server Instance
+ * @returns Express server Instance
+ */
+
 const createServer = () => {
   const app = express();
   app.use(express.json());

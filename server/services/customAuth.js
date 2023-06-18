@@ -2,9 +2,13 @@
 const signJWT = require("../middleware/signJWT");
 const { hashPassword, comparePassword } = require("../middleware/password");
 
+/**
+ * @description Custom Authentication Class which creates/login user(s)
+ */
 class CustomAuthServices {
   /**
    * @param {import("../userDao")} dao
+   * @description User Dao which servers as layer to interact which the database in absence of packages like mongoose.
    */
   constructor(dao) {
     this.userDao = dao;
@@ -12,48 +16,51 @@ class CustomAuthServices {
 
   /**
    * @param {{email: string; password: string, accountType: string;}} userData
+   * @description Create User Method
+   * @returns Access Token or Error
    */
   async createUser(userData) {
     const { email, password, accountType } = userData;
     let result;
     let error;
-    switch (accountType) {
-      case "customEmail":
-        if (!password || !email)
-          error = { statusCode: 400, payload: "Email and Password required!" };
-        await hashPassword(password)
-          .then(async (hash) => {
-            let credentials = {
-              email: email.trim(),
-              password: hash,
-              accountType,
-            };
-            await this.userDao.createUser(credentials).then(async (userId) => {
-              let accessToken = await signJWT(userId);
-              result = { statusCode: 201, payload: accessToken };
-            });
-          })
-          .catch(() => {
-            error = { statusCode: 500, payload: "Something Went Wrong!" };
+    if (accountType === "customEmail") {
+      if (!password || !email)
+        error = { statusCode: 400, payload: "Email and Password required!" };
+      await hashPassword(password)
+        .then(async (hash) => {
+          let credentials = {
+            email: email.trim(),
+            password: hash,
+            accountType,
+          };
+          await this.userDao.createUser(credentials).then(async (userId) => {
+            let accessToken = await signJWT(userId);
+            result = { statusCode: 201, payload: accessToken };
           });
-        break;
-
-      case "google" || "facebook" || "twitter":
-        await this.userDao
-          .createUser({ email, password, accountType })
-          .then(async (userId) => {
-            result = { statusCode: 201, payload: await signJWT(userId) };
-          });
-        break;
-      default:
-        error = { statusCode: 500, payload: "Something Went Wrong!" };
-        break;
+        })
+        .catch(() => {
+          error = { statusCode: 500, payload: "Something Went Wrong!" };
+        });
+    } else if (accountType === "google" || "facebook" || "twitter") {
+      await this.userDao
+        .createUser({ email, password, accountType })
+        .then(
+          async (userId) =>
+            (result = { statusCode: 201, payload: await signJWT(userId) })
+        );
+    } else {
+      error = {
+        statusCode: 400,
+        payload: "Authentication Type is not Supported!",
+      };
     }
     return result ? result : error;
   }
 
   /**
    * @param {{ email: any; password: string; }} userData
+   * @description Login User Method
+   * @returns Access Token or Error
    */
   async loginUser(userData) {
     const { email, password } = userData;
@@ -64,31 +71,24 @@ class CustomAuthServices {
     await this.userDao
       .findUser({ email })
       .then(async (user) => {
-        console.log(user);
-        switch (user.accountType) {
-          case "customEmail":
-            if (!password)
-              error = { statusCode: 400, payload: "Password Required!" };
-            await comparePassword(password, user.password).then(
-              async (match) => {
-                if (match) {
-                  result = { statusCode: 200, payload: await signJWT(user.id) };
-                } else {
-                  error = {
-                    statusCode: 400,
-                    payload: "Password Do Not Match!",
-                  };
-                }
-              }
-            );
-            break;
+        if (user.accountType === "customEmail") {
+          if (!password)
+            error = { statusCode: 400, payload: "Password Required!" };
+          await comparePassword(password, user.password).then(async (match) => {
+            if (match) {
+              result = { statusCode: 200, payload: await signJWT(user.id) };
+            } else {
+              error = {
+                statusCode: 400,
+                payload: "Password Do Not Match!",
+              };
+            }
+          });
           // Other Types of Social Auths
-          case "google" || "facebook" || "twitter":
-            result = { statusCode: 200, payload: await signJWT(user.id) };
-            break;
-          default:
-            error = { statusCode: 400, payload: "User Not Found!" };
-            break;
+        } else if (user.accountType === "google" || "facebook" || "twitter") {
+          result = { statusCode: 200, payload: await signJWT(user.id) };
+        } else {
+          error = { statusCode: 400, payload: "User Not Found!" };
         }
       })
       .catch(() => {
