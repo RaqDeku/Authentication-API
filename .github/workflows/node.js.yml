@@ -10,7 +10,7 @@ on:
     branches: [ "main" ]
 
 jobs:
-  build:
+  build: ./server/npm start
 
     runs-on: ubuntu-latest
 
