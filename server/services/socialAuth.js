@@ -6,6 +6,7 @@ let GOOGLE_USERINFO_URI = "https://www.googleapis.com/oauth2/v2/userinfo";
 
 let FACEBOOK_TOKEN_URI = "https://graph.facebook.com/v17.0/oauth/access_token";
 let FACEBOOK_USERINFO_URI = "https://graph.facebook.com/v12.0/me";
+
 /**
  * @description Authentication Class for the various Social Oauths
  */
@@ -44,7 +45,7 @@ class SocialAuth {
         Authorization: `Bearer ${access_token}`,
       },
     });
-    return { email, accountType: "google" };
+    return { email, provider: "google" };
   }
 
   /**
@@ -66,27 +67,10 @@ class SocialAuth {
       access_token,
     });
     const { email } = await this.fetchData(userInfoUrl);
-    return { email, accountType: "facebook" };
+    return { email, provider: "facebook" };
   }
 
-  /**
-   * @param {{redirect_uri: string}} authData
-   * @description Authentication method twitter
-   */
-  async authWithTwitter(authData) {
-    // Send a post to oauth/request_token
-    const { redirect_uri } = authData;
-    let encoded_uri = encodeURIComponent(redirect_uri);
-    let params = {
-      oauth_callback: encoded_uri,
-      oauth_consumer_key: process.env.TWITER_API_KEY,
-    };
-    let request_token;
-    await fetch(`https://api.twitter.com/oauth/request_token?${params}`)
-      .then((response) => response.json())
-      .then((data) => console.log(data))
-      .catch((err) => console.error(err));
-  }
+  async authWithTwitter(authData) {}
 }
 
 module.exports = SocialAuth;

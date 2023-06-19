@@ -17,15 +17,15 @@ class CustomAuthServices {
   }
 
   /**
-   * @param {{email: string; password: string, accountType: string;}} userData
+   * @param {{email: string; password: string, provider: string;}} userData
    * @description Create User Method
    * @returns Access Token or Error
    */
   async createUser(userData) {
-    const { email, password, accountType } = userData;
+    const { email, password, provider } = userData;
     let result;
     let error;
-    if (accountType === "customEmail") {
+    if (provider === "customEmail") {
       if (!password || !email)
         error = { statusCode: 400, payload: "Email and Password required!" };
       await hashPassword(password)
@@ -33,7 +33,7 @@ class CustomAuthServices {
           let credentials = {
             email: email.trim(),
             password: hash,
-            accountType,
+            provider,
           };
           await this.userDao.createUser(credentials).then(async (userId) => {
             let accessToken = await signJWT(userId);
@@ -43,9 +43,9 @@ class CustomAuthServices {
         .catch(() => {
           error = { statusCode: 500, payload: "Something Went Wrong!" };
         });
-    } else if (accountType === "google" || "facebook" || "twitter") {
+    } else if (provider === "google" || "facebook" || "twitter") {
       await this.userDao
-        .createUser({ email, accountType })
+        .createUser({ email, provider })
         .then(
           async (userId) =>
             (result = { statusCode: 201, payload: await signJWT(userId) })
@@ -73,7 +73,7 @@ class CustomAuthServices {
     await this.userDao
       .findUser({ email })
       .then(async (user) => {
-        if (user.accountType === "customEmail") {
+        if (user.provider === "customEmail") {
           if (!password)
             error = { statusCode: 400, payload: "Password Required!" };
           await comparePassword(password, user.password).then(async (match) => {
@@ -87,7 +87,7 @@ class CustomAuthServices {
             }
           });
           // Other Types of Social Auths
-        } else if (user.accountType === "google" || "facebook" || "twitter") {
+        } else if (user.provider === "google" || "facebook" || "twitter") {
           result = { statusCode: 200, payload: await signJWT(user.id) };
         } else {
           error = { statusCode: 400, payload: "User Not Found!" };

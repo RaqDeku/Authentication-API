@@ -23,7 +23,7 @@ class CustomAuthController {
     let result = await customAuthService.createUser({
       email,
       password,
-      accountType: "customEmail",
+      provider: "customEmail",
     });
     console.log(result);
     return res.status(result.statusCode).json({ payload: result.payload });
@@ -58,7 +58,7 @@ class CustomAuthController {
   async authUserWithGoogle(req, res) {
     const { code, redirect_uri, action_type } = req.query;
     // Request for user data from Google
-    let { email, accountType } = await socialAuth.authWithGoogle({
+    let { email, provider } = await socialAuth.authWithGoogle({
       code,
       redirect_uri,
     });
@@ -67,7 +67,7 @@ class CustomAuthController {
     // Authenticate based on Action type of user
     switch (action_type) {
       case "register":
-        result = await customAuthService.createUser({ email, accountType });
+        result = await customAuthService.createUser({ email, provider });
         res.status(result.statusCode).json({ payload: result.payload });
         break;
       case "login":
@@ -90,7 +90,7 @@ class CustomAuthController {
   async authWithFacebook(req, res) {
     const { code, redirect_uri, action_type } = req.query;
     // Request user data from Facebook
-    let { email, accountType } = await socialAuth.authWithFacebook({
+    let { email, provider } = await socialAuth.authWithFacebook({
       code,
       redirect_uri,
     });
@@ -98,7 +98,7 @@ class CustomAuthController {
     // Route based on Action type of user
     switch (action_type) {
       case "register":
-        result = await customAuthService.createUser({ email, accountType });
+        result = await customAuthService.createUser({ email, provider });
         res.status(result.statusCode).json({ payload: result.payload });
         break;
       case "login":
@@ -115,28 +115,7 @@ class CustomAuthController {
    * @param {Response} res
    * @description Authenticate User who choose Twitter using Social Class
    */
-  async authWithTwitter(req, res) {
-    const { redirect_uri, action_type } = req.query;
-    // Request user data from Twitter
-    const data = await socialAuth.authWithTwitter({ redirect_uri });
-    // const { email, password, accountType } = data;
-
-    // Authenticate User based on action type
-    // let result;
-    // switch (action_type) {
-    //   case "register":
-    //     result = await customAuthService.createUser({
-    //       email,
-    //       password,
-    //       accountType,
-    //     });
-    //     res.status(result.statusCode).json({ payload: result.payload });
-    //     break;
-
-    //   default:
-    //     break;
-    // }
-  }
+  async authWithTwitter(req, res) {}
 }
 
 module.exports = CustomAuthController;
