@@ -18,3 +18,5 @@ store in my database of users.
 ![image](https://github.com/RaqDeku/Authentication-API/assets/92717740/3f24722d-445a-4b06-91e0-b34a83694010)
 
 Env Variables to add
+For the MONGODB its the uri to your mongo be database (Atlas or Localhost)
+
