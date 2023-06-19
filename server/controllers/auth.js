@@ -13,7 +13,6 @@ class CustomAuthController {
   constructor() {}
 
   /**
-   *
    * @param {Request} req
    * @param {Response} res
    * @description Create User Controller for creating new User via custom email regiatration
@@ -59,20 +58,16 @@ class CustomAuthController {
   async authUserWithGoogle(req, res) {
     const { code, redirect_uri, action_type } = req.query;
     // Request for user data from Google
-    let data = await socialAuth.authWithGoogle({ code, redirect_uri });
-    const { email, password, accountType } = data;
+    let { email, accountType } = await socialAuth.authWithGoogle({
+      code,
+      redirect_uri,
+    });
 
     let result;
-    /**
-     * @description Authenticate based on Action type of user
-     */
+    // Authenticate based on Action type of user
     switch (action_type) {
       case "register":
-        result = await customAuthService.createUser({
-          email,
-          password,
-          accountType,
-        });
+        result = await customAuthService.createUser({ email, accountType });
         res.status(result.statusCode).json({ payload: result.payload });
         break;
       case "login":
@@ -95,19 +90,15 @@ class CustomAuthController {
   async authWithFacebook(req, res) {
     const { code, redirect_uri, action_type } = req.query;
     // Request user data from Facebook
-    let data = await socialAuth.authWithFacebook({ code, redirect_uri });
-    const { email, password, accountType } = data;
+    let { email, accountType } = await socialAuth.authWithFacebook({
+      code,
+      redirect_uri,
+    });
     let result;
-    /**
-     * @description Route based on Action type of user
-     */
+    // Route based on Action type of user
     switch (action_type) {
       case "register":
-        result = await customAuthService.createUser({
-          email,
-          password,
-          accountType,
-        });
+        result = await customAuthService.createUser({ email, accountType });
         res.status(result.statusCode).json({ payload: result.payload });
         break;
       case "login":

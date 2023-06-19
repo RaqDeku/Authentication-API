@@ -1,11 +1,13 @@
 // @ts-check
-const signJWT = require("../middleware/signJWT");
-const { hashPassword, comparePassword } = require("../middleware/password");
+const signJWT = require("../utils/signJWT");
+const { hashPassword, comparePassword } = require("../utils/password");
 
 /**
  * @description Custom Authentication Class which creates/login user(s)
+ * @private User Dao
  */
 class CustomAuthServices {
+  userDao;
   /**
    * @param {import("../userDao")} dao
    * @description User Dao which servers as layer to interact which the database in absence of packages like mongoose.
@@ -43,7 +45,7 @@ class CustomAuthServices {
         });
     } else if (accountType === "google" || "facebook" || "twitter") {
       await this.userDao
-        .createUser({ email, password, accountType })
+        .createUser({ email, accountType })
         .then(
           async (userId) =>
             (result = { statusCode: 201, payload: await signJWT(userId) })

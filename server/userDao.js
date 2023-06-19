@@ -9,7 +9,7 @@ class UserDao {
   constructor() {}
 
   /**
-   * @param {{email: string; password: string; accountType: string;}} user
+   * @param {any} user
    * @description Creates New User Document
    * @returns User Id (User Document ID)
    */

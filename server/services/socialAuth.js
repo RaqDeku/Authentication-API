@@ -1,4 +1,11 @@
 // @ts-check
+const getUriWithParam = require("../utils/queryString");
+
+let GOOGLE_TOKEN_URI = "https://oauth2.googleapis.com/token";
+let GOOGLE_USERINFO_URI = "https://www.googleapis.com/oauth2/v2/userinfo";
+
+let FACEBOOK_TOKEN_URI = "https://graph.facebook.com/v17.0/oauth/access_token";
+let FACEBOOK_USERINFO_URI = "https://graph.facebook.com/v12.0/me";
 /**
  * @description Authentication Class for the various Social Oauths
  */
@@ -6,83 +13,60 @@ class SocialAuth {
   constructor() {}
 
   /**
+   * @param {any} args
+   * @returns Data Object from fetch()
+   */
+  async fetchData(...args) {
+    // @ts-ignore
+    return fetch(...args)
+      .then((response) => response.json())
+      .catch((err) => console.log(err));
+  }
+  /**
    * @param {{code: string; redirect_uri: string;}} authData
    * @description Authentication Method for google
-   * @returns User Data we want from the data Google provided
+   * @returns User Data
    */
   async authWithGoogle(authData) {
     const { code, redirect_uri } = authData;
-
-    let token; // Access Token from Google
-
-    await fetch(
-      // @ts-ignore
-      `https://oauth2.googleapis.com/token?code=${code}&client_id=${process.env.CLIENT_ID_GOOGLE}&client_secret=${process.env.CLIENT_SECRET_GOOGLE}&redirect_uri=${redirect_uri}&grant_type=authorization_code`,
-      { method: "POST" }
-    )
-      .then((response) => response.json())
-      .then((data) => (token = data.access_token))
-      .catch((err) => console.error(err));
-
-    // Send Access Token back to Google for User Information
-    let userInfoFromToken;
-    await fetch("https://www.googleapis.com/oauth2/v2/userinfo", {
+    const tokenUrl = getUriWithParam(GOOGLE_TOKEN_URI, {
+      code,
+      client_id: process.env.CLIENT_ID_GOOGLE,
+      client_secret: process.env.CLIENT_SECRET_GOOGLE,
+      redirect_uri,
+      grant_type: "authorization_code",
+    });
+    console.log(tokenUrl);
+    let { access_token } = await this.fetchData(tokenUrl, { method: "POST" });
+    let { email } = await this.fetchData(GOOGLE_USERINFO_URI, {
       method: "GET",
       headers: {
-        Authorization: `Bearer ${token}`,
+        Authorization: `Bearer ${access_token}`,
       },
-    })
-      .then((response) => response.json())
-      .then(
-        (userInfo) =>
-          (userInfoFromToken = {
-            email: userInfo.email,
-            password: "",
-            accountType: "google",
-          })
-      )
-      .catch((err) => console.error(err));
-
-    return userInfoFromToken;
+    });
+    return { email, accountType: "google" };
   }
 
   /**
    * @param {{code: string; redirect_uri:string;}} authData
    * @description Authentication method for facebook
-   * @returns User Data we want from data Facebook provided
+   * @returns User Data
    */
   async authWithFacebook(authData) {
     const { code, redirect_uri } = authData;
-    let token;
-
-    // Fetch Access Token from Facebook
-    await fetch(
-      `https://graph.facebook.com/v17.0/oauth/access_token?client_id=${process.env.CLIENT_ID_FACEBOOK}&redirect_uri=${redirect_uri}&client_secret=${process.env.CLIENT_SECRET_FACEBOOK}&code=${code}`,
-      { method: "POST" }
-    )
-      .then((response) => response.json())
-      .then((data) => (token = data.access_token))
-      .catch((err) => console.log(err));
-    // Send Token Back to Facebook for User Info
-    let userInfoFromToken;
-    await fetch(
-      `https://graph.facebook.com/v12.0/me?fields=name,email&access_token=${token}`,
-      {
-        method: "GET",
-      }
-    )
-      .then((response) => response.json())
-      .then(
-        (userInfo) =>
-          (userInfoFromToken = {
-            email: userInfo.email,
-            password: "",
-            accountType: "facebook",
-          })
-      )
-      .catch((err) => console.log(err));
-    console.log(userInfoFromToken);
-    return userInfoFromToken;
+    let tokenUrl = getUriWithParam(FACEBOOK_TOKEN_URI, {
+      client_id: process.env.CLIENT_ID_FACEBOOK,
+      client_secret: process.env.CLIENT_SECRET_FACEBOOK,
+      code,
+      redirect_uri,
+    });
+    const { access_token } = await this.fetchData(tokenUrl);
+    const userInfoUrl = getUriWithParam(FACEBOOK_USERINFO_URI, {
+      fields: ["name", "email"].join(","),
+      access_token,
+    });
+    const { email } = await this.fetchData(userInfoUrl);
+    return { email, accountType: "facebook" };
   }
 
   /**

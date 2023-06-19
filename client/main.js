@@ -31,7 +31,6 @@
 //       document.getElementById("token").innerHTML = data.payload;
 //     });
 // };
-
 // googleLink.onclick(googleAuth());
 
 /**
@@ -54,20 +53,22 @@ let facebookUri = `https://www.facebook.com/v17.0/dialog/oauth?${facebookQuery}`
 let facebookLink = document.getElementById("facebooklink");
 facebookLink.href = facebookUri;
 
-facebookLink.onclick(async () => {
+const facebookAuth = async () => {
   let urlStr = window.location.href;
   let code = new URL(urlStr).searchParams.get("code");
   let redirect_uri = "http://localhost:5173/";
-  // For the action_type; just change the value to either 'register / login' to hit 
+  // For the action_type; just change the value to either 'register / login' to hit
   // either route, the authentication process is the same for either.
   // the action_type would tell the backend what authentication is the user is performing and
   // process the necessary logic.
   await fetch(
-    `http://localhost:3000/auth/facebook?code=${code}&redirect_uri=${redirect_uri}&action_type=${register}`
+    `http://localhost:3000/auth/facebook?code=${code}&redirect_uri=${redirect_uri}&action_type=register`
   )
     .then((response) => response.json())
     .then((data) => console.log(data));
-});
+};
+
+facebookLink.onclick(facebookAuth());
 
 /**
  * @description Twitter Oauth

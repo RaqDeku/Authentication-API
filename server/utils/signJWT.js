@@ -1,9 +1,13 @@
 const jwt = require("jsonwebtoken");
 
-const signJWT = async (userId) => {
+/**
+ * @param {any} data
+ * @returns signed access token
+ */
+const signJWT = async (data) => {
   let accessToken;
   try {
-    accessToken = jwt.sign({ userId }, "yourSecretKey", {
+    accessToken = jwt.sign({ data }, "yourSecretKey", {
       expiresIn: "30m",
     });
   } catch (error) {
