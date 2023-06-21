@@ -1,6 +1,7 @@
 // @ts-check
 const signJWT = require("../utils/signJWT");
 const { hashPassword, comparePassword } = require("../utils/password");
+const { AUTH_ERROR, SERVER_ERROR } = require("../constants/constants");
 
 /**
  * @description Custom Authentication Class which creates/login user(s)
@@ -21,85 +22,114 @@ class CustomAuthServices {
    * @description Create User Method
    * @returns Access Token or Error
    */
-  async createUser(userData) {
+  async authCustomUser(userData) {
     const { email, password, provider } = userData;
     let result;
     let error;
-    if (provider === "customEmail") {
-      if (!password || !email)
-        error = { statusCode: 400, payload: "Email and Password required!" };
-      await hashPassword(password)
-        .then(async (hash) => {
-          let credentials = {
-            email: email.trim(),
-            password: hash,
-            provider,
-          };
-          await this.userDao.createUser(credentials).then(async (userId) => {
-            let accessToken = await signJWT(userId);
-            result = { statusCode: 201, payload: accessToken };
-          });
-        })
-        .catch(() => {
-          error = { statusCode: 500, payload: "Something Went Wrong!" };
-        });
-    } else if (provider === "google" || "facebook" || "twitter") {
-      await this.userDao
-        .createUser({ email, provider })
-        .then(
-          async (userId) =>
-            (result = { statusCode: 201, payload: await signJWT(userId) })
-        );
-    } else {
-      error = {
-        statusCode: 400,
-        payload: "Authentication Type is not Supported!",
-      };
-    }
-    return result ? result : error;
-  }
 
-  /**
-   * @param {{ email: any; password: string; }} userData
-   * @description Login User Method
-   * @returns Access Token or Error
-   */
-  async loginUser(userData) {
-    const { email, password } = userData;
-    let result;
-    let error;
-    // @check for email
-    if (!email) error = { statusCode: 400, payload: "Email required!" };
-    await this.userDao
-      .findUser({ email })
-      .then(async (user) => {
-        if (user.provider === "customEmail") {
-          if (!password)
-            error = { statusCode: 400, payload: "Password Required!" };
-          await comparePassword(password, user.password).then(async (match) => {
-            if (match) {
+    if (!password || !email)
+      error = {
+        statusCode: AUTH_ERROR.ERROR_CODE,
+        payload: AUTH_ERROR.ERROR_MSG,
+      };
+
+    // Find User if User Exist
+    await this.userDao.findUser({ email }).then(async (user) => {
+      if (user) {
+        await comparePassword(password, user.password)
+          .then(async (match) => {
+            if (match)
               result = { statusCode: 200, payload: await signJWT(user.id) };
-            } else {
+            else
               error = {
-                statusCode: 400,
-                payload: "Password Do Not Match!",
+                StatusCode: AUTH_ERROR.ERROR_CODE,
+                payload: AUTH_ERROR.ERROR_MSG_PASSWORD,
               };
-            }
-          });
-          // Other Types of Social Auths
-        } else if (user.provider === "google" || "facebook" || "twitter") {
-          result = { statusCode: 200, payload: await signJWT(user.id) };
-        } else {
-          error = { statusCode: 400, payload: "User Not Found!" };
-        }
-      })
-      .catch(() => {
-        error = { statusCode: 500, payload: "Something Went Wrong!" };
-      });
+          })
+          .catch(
+            () =>
+              (error = {
+                statusCode: SERVER_ERROR.ERROR_CODE,
+                payload: SERVER_ERROR.ERROR_MSG,
+              })
+          );
+      } else {
+        // Create User if User does not exist
+        await hashPassword(password)
+          .then(async (hash) => {
+            await this.userDao
+              .createUser({
+                email,
+                password: hash,
+                provider: "customEmail",
+              })
+              .then(
+                async (userId) =>
+                  (result = {
+                    statusCode: 200,
+                    payload: await signJWT(userId),
+                  })
+              )
+              .catch(
+                () =>
+                  (error = {
+                    statusCode: SERVER_ERROR.ERROR_CODE,
+                    payload: SERVER_ERROR.ERROR_MSG,
+                  })
+              );
+          })
+          .catch(
+            () =>
+              (error = {
+                statusCode: SERVER_ERROR.ERROR_CODE,
+                payload: SERVER_ERROR.ERROR_MSG,
+              })
+          );
+      }
+    });
     return result ? result : error;
   }
 
   async resetPassword() {}
+
+  /**
+   * @param {{email: string; provider: string }} authData
+   * @description Authenticate User based on Oauth
+   * @returns Access Token Or Error
+   */
+  async authWithOauth(authData) {
+    const { email, provider } = authData;
+    let result;
+    let error;
+    // First Find User if user Exist
+    await this.userDao
+      .findUser({ email })
+      .then(async (user) => {
+        if (user) {
+          result = { statusCode: 200, payload: await signJWT(user.id) };
+        } else {
+          // Create User if User does not Exist
+          await this.userDao
+            .createUser({ email, provider })
+            .then(async (userId) => {
+              result = { statusCode: 200, payload: await signJWT(userId) };
+            })
+            .catch(() => {
+              error = {
+                statusCode: SERVER_ERROR.ERROR_CODE,
+                payload: SERVER_ERROR.ERROR_MSG,
+              };
+            });
+        }
+      })
+      .catch(() => {
+        error = {
+          statusCode: SERVER_ERROR.ERROR_CODE,
+          payload: SERVER_ERROR.ERROR_MSG,
+        };
+      });
+    return result ? result : error;
+  }
 }
 
 module.exports = CustomAuthServices;

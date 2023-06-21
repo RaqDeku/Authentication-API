@@ -37,7 +37,6 @@ class SocialAuth {
       redirect_uri,
       grant_type: "authorization_code",
     });
-    console.log(tokenUrl);
     let { access_token } = await this.fetchData(tokenUrl, { method: "POST" });
     let { email } = await this.fetchData(GOOGLE_USERINFO_URI, {
       method: "GET",

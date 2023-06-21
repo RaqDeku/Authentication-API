@@ -15,30 +15,13 @@ class CustomAuthController {
   /**
    * @param {Request} req
    * @param {Response} res
-   * @description Create User Controller for creating new User via custom email regiatration
+   * @description Create User Controller for authenticating User via custom email regiatration
    * @returns status Code and Payload from Service Class
    */
-  async createUser(req, res) {
+  async authCustomUser(req, res) {
     const { email, password } = req.body;
-    let result = await customAuthService.createUser({
-      email,
-      password,
-      provider: "customEmail",
-    });
+    let result = await customAuthService.authCustomUser({ email, password });
     console.log(result);
-    return res.status(result.statusCode).json({ payload: result.payload });
-  }
-
-  /**
-   *
-   * @param {Request} req
-   * @param {Response} res
-   * @description Login User Controller for Logining in User via custom email login
-   * @returns status Code and Payload from Service Class
-   */
-  async loginUser(req, res) {
-    const { email, password } = req.body;
-    let result = await customAuthService.loginUser({ email, password });
     return res.status(result.statusCode).json({ payload: result.payload });
   }
 
@@ -56,28 +39,15 @@ class CustomAuthController {
    * @returns status Code and Payload from Service Class
    */
   async authUserWithGoogle(req, res) {
-    const { code, redirect_uri, action_type } = req.query;
+    const { code, redirect_uri } = req.query;
     // Request for user data from Google
     let { email, provider } = await socialAuth.authWithGoogle({
       code,
       redirect_uri,
     });
 
-    let result;
-    // Authenticate based on Action type of user
-    switch (action_type) {
-      case "register":
-        result = await customAuthService.createUser({ email, provider });
-        res.status(result.statusCode).json({ payload: result.payload });
-        break;
-      case "login":
-        result = await customAuthService.loginUser({ email });
-        res.status(result.statusCode).json({ payload: result.payload });
-        break;
-      default:
-        res.status(400).json({ payload: "Bad Request" });
-        break;
-    }
+    let result = await customAuthService.authWithOauth({ email, provider });
+    return res.status(result.statusCode).json({ payload: result.payload });
   }
 
   /**
@@ -88,26 +58,14 @@ class CustomAuthController {
    */
 
   async authWithFacebook(req, res) {
-    const { code, redirect_uri, action_type } = req.query;
+    const { code, redirect_uri } = req.query;
     // Request user data from Facebook
     let { email, provider } = await socialAuth.authWithFacebook({
       code,
       redirect_uri,
     });
-    let result;
-    // Route based on Action type of user
-    switch (action_type) {
-      case "register":
-        result = await customAuthService.createUser({ email, provider });
-        res.status(result.statusCode).json({ payload: result.payload });
-        break;
-      case "login":
-        result = await customAuthService.loginUser({ email });
-        res.status(result.statusCode).json({ payload: result.payload });
-      default:
-        res.status(400).json({ payload: "Bad Request" });
-        break;
-    }
+    let result = await customAuthService.authWithOauth({ email, provider });
+    return res.status(result.statusCode).json({ payload: result.payload });
   }
 
   /**
