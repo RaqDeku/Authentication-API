@@ -42,7 +42,7 @@ class CustomAuthServices {
               result = { statusCode: 200, payload: await signJWT(user.id) };
             else
               error = {
-                StatusCode: AUTH_ERROR.ERROR_CODE,
+                statusCode: AUTH_ERROR.ERROR_CODE,
                 payload: AUTH_ERROR.ERROR_MSG_PASSWORD,
               };
           })
